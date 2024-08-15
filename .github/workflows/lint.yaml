@@ -1,0 +1,31 @@
+name: Linting
+
+on:
+  - pull_request
+
+jobs:
+  lint:
+    strategy:
+      matrix:
+        go-version:
+          - 1.21
+        os:
+          - ubuntu-20.04
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Setup Golang with cache
+        uses: magnetikonline/action-golang-cache@v2
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install golangci-lint
+        run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.53.3
+
+      - name: Go Lint
+        run: make lint
+
+      - name: Proto lint
+        run: make proto-lint

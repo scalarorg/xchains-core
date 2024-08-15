@@ -1,0 +1,7 @@
+Dockerfile
+Dockerfile.*
+.gitignore
+.idea
+.git-hooks
+.gitattributes
+bin
