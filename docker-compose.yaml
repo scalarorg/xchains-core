@@ -1,0 +1,38 @@
+services:
+  scalar-init:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+      args:
+        - WASM=${WASM}
+    image: "scalarorg/xchains-core"
+    container_name: scalar-init
+    working_dir: /
+    volumes:
+      - ../.testnets:/home/axelard/.testnets:Z
+      - ../config/bridge.toml:/home/axelard/.testnets/bridge.toml:Z
+    environment:
+      - AXELARD_CHAIN_ID=scalar-testnet-1
+      - KEYRING_PASSWORD=${KEYRING_PASSWORD}
+      - OUTPUT_DIR=/home/axelard/.testnets
+
+  scalar-node:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+      args:
+        - WASM=${WASM}
+    image: "scalarorg/xchains-core"
+    volumes:
+      - ../config/validator_start.sh:/validator_start.sh
+    cap_add:
+      - SYS_PTRACE
+    environment:
+      - KEYRING_PASSWORD=${KEYRING_PASSWORD}
+      - AXELARD_CHAIN_ID=scalar-testnet-1
+      - PEERS_FILE=/home/axelard/.axelar/peers.txt
+      - LOG=${LOG:-axelard.log}
+    working_dir: /home/axelard
+    entrypoint: /validator_start.sh
+    security_opt:
+      - seccomp:unconfined

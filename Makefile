@@ -21,7 +21,9 @@ $(info $$WASM is [${WASM}])
 $(info $$IBC_WASM_HOOKS is [${IBC_WASM_HOOKS}])
 $(info $$MAX_WASM_SIZE is [${MAX_WASM_SIZE}])
 $(info $$CGO_ENABLED is [${CGO_ENABLED}])
-
+ifndef $(VERSION)
+VERSION := "v0.0.1"
+endif
 ifndef $(WASM_CAPABILITIES)
 # Wasm capabilities: https://github.com/CosmWasm/cosmwasm/blob/main/docs/CAPABILITIES-BUILT-IN.md
 WASM_CAPABILITIES := "iterator,staking,stargate,cosmwasm_1_3"
