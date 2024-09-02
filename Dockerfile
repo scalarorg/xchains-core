@@ -22,12 +22,12 @@ RUN go mod download
 # Use a compatible libwasmvm
 # Alpine Linux requires static linking against muslc: https://github.com/CosmWasm/wasmd/blob/v0.33.0/INTEGRATION.md#prerequisites
 RUN if [[ "${WASM}" == "true" ]]; then \
-    WASMVM_VERSION=v1.3.1 && \
-    wget https://github.com/CosmWasm/wasmvm/releases/download/${WASMVM_VERSION}/libwasmvm_muslc.${ARCH}.a \
-        -O /lib/libwasmvm_muslc.a && \
-    wget https://github.com/CosmWasm/wasmvm/releases/download/${WASMVM_VERSION}/checksums.txt -O /tmp/checksums.txt && \
-    sha256sum /lib/libwasmvm_muslc.a | grep $(cat /tmp/checksums.txt | grep libwasmvm_muslc.${ARCH}.a | cut -d ' ' -f 1); \
-    fi
+  WASMVM_VERSION=v1.3.1 && \
+  wget https://github.com/CosmWasm/wasmvm/releases/download/${WASMVM_VERSION}/libwasmvm_muslc.${ARCH}.a \
+  -O /lib/libwasmvm_muslc.a && \
+  wget https://github.com/CosmWasm/wasmvm/releases/download/${WASMVM_VERSION}/checksums.txt -O /tmp/checksums.txt && \
+  sha256sum /lib/libwasmvm_muslc.a | grep $(cat /tmp/checksums.txt | grep libwasmvm_muslc.${ARCH}.a | cut -d ' ' -f 1); \
+  fi
 
 COPY . .
 
@@ -37,7 +37,7 @@ FROM alpine:3.18
 
 ARG USER_ID=1000
 ARG GROUP_ID=1001
-RUN apk add jq
+RUN apk add jq bash
 COPY --from=build /go/axelar/bin/* /usr/local/bin/
 RUN addgroup -S -g ${GROUP_ID} axelard && adduser -S -u ${USER_ID} axelard -G axelard
 USER axelard
