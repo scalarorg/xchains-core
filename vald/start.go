@@ -39,6 +39,7 @@ import (
 	grpc "github.com/axelarnetwork/axelar-core/vald/tofnd_grpc"
 	"github.com/axelarnetwork/axelar-core/vald/tss"
 	axelarnet "github.com/axelarnetwork/axelar-core/x/axelarnet/exported"
+	btcTypes "github.com/axelarnetwork/axelar-core/x/btc/types"
 	evmTypes "github.com/axelarnetwork/axelar-core/x/evm/types"
 	multisigTypes "github.com/axelarnetwork/axelar-core/x/multisig/types"
 	"github.com/axelarnetwork/axelar-core/x/tss/tofnd"
@@ -203,7 +204,7 @@ func listen(clientCtx sdkClient.Context, txf tx.Factory, axelarCfg config.ValdCo
 		return cl, nil
 	})
 	tssMgr := createTSSMgr(bc, clientCtx, axelarCfg, valAddr.String(), cdc)
-
+	btcMgr := createBTCMgr(axelarCfg, clientCtx, bc, valAddr)
 	evmMgr := createEVMMgr(axelarCfg, clientCtx, bc, valAddr)
 	multisigMgr := createMultisigMgr(bc, clientCtx, axelarCfg, valAddr)
 	nodeHeight, err := waitUntilNetworkSync(axelarCfg, robustClient)
@@ -240,6 +241,7 @@ func listen(clientCtx sdkClient.Context, txf tx.Factory, axelarCfg config.ValdCo
 	evmTraConf := eventBus.Subscribe(tmEvents.Filter[*evmTypes.ConfirmKeyTransferStarted]())
 	evmGatewayTxConf := eventBus.Subscribe(tmEvents.Filter[*evmTypes.ConfirmGatewayTxStarted]())
 	evmGatewayTxsConf := eventBus.Subscribe(tmEvents.Filter[*evmTypes.ConfirmGatewayTxsStarted]())
+	btcGatewayTxsConf := eventBus.Subscribe(tmEvents.Filter[*btcTypes.ConfirmGatewayTxsStarted]())
 	multisigKeygen := eventBus.Subscribe(tmEvents.Filter[*multisigTypes.KeygenStarted]())
 	multisigSigning := eventBus.Subscribe(tmEvents.Filter[*multisigTypes.SigningStarted]())
 
@@ -299,6 +301,7 @@ func listen(clientCtx sdkClient.Context, txf tx.Factory, axelarCfg config.ValdCo
 		createJobTyped(evmTraConf, evmMgr.ProcessTransferKeyConfirmation, cancelEventCtx),
 		createJobTyped(evmGatewayTxConf, evmMgr.ProcessGatewayTxConfirmation, cancelEventCtx),
 		createJobTyped(evmGatewayTxsConf, evmMgr.ProcessGatewayTxsConfirmation, cancelEventCtx),
+		createJobTyped(btcGatewayTxsConf, btcMgr.ProcessGatewayTxsConfirmation, cancelEventCtx),
 		createJobTyped(multisigKeygen, multisigMgr.ProcessKeygenStarted, cancelEventCtx),
 		createJobTyped(multisigSigning, multisigMgr.ProcessSigningStarted, cancelEventCtx),
 	}
@@ -456,7 +459,15 @@ func createTSSMgr(broadcaster broadcast.Broadcaster, cliCtx client.Context, axel
 func createEVMClient(config evmTypes.EVMConfig) (evmRPC.Client, error) {
 	return evmRPC.NewClient(config.RPCAddr, config.FinalityOverride)
 }
-
+func createBTCMgr(axelarCfg config.ValdConfig, cliCtx sdkClient.Context, b broadcast.Broadcaster, valAddr sdk.ValAddress) *btc.Mgr {
+	btcMgr, err := btc.NewMgr(axelarCfg.BTCConfig, cliCtx, b, valAddr, cliCtx.FromAddress)
+	if err != nil {
+		err = sdkerrors.Wrap(err, fmt.Sprintf("failed to create an RPC connection for Btc chain. Verify your BTC Connection config."))
+		log.Error(err.Error())
+		panic(err)
+	}
+	return btcMgr
+}
 func createEVMMgr(axelarCfg config.ValdConfig, cliCtx sdkClient.Context, b broadcast.Broadcaster, valAddr sdk.ValAddress) *evm.Mgr {
 	rpcs := make(map[string]evmRPC.Client)
 
@@ -493,7 +504,7 @@ func createEVMMgr(axelarCfg config.ValdConfig, cliCtx sdkClient.Context, b broad
 		log.Infof("successfully connected to EVM bridge for chain %s", chainName)
 	})
 
-	btcMgr, err := btc.NewMgr(axelarCfg.BTCConfig, cliCtx, b, valAddr)
+	btcMgr, err := btc.NewMgr(axelarCfg.BTCConfig, cliCtx, b, valAddr, cliCtx.FromAddress)
 	if err != nil {
 		err = sdkerrors.Wrap(err, fmt.Sprintf("failed to create an RPC connection for Btc chain. Verify your BTC Connection config."))
 		log.Error(err.Error())

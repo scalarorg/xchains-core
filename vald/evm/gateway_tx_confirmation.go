@@ -8,7 +8,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	geth "github.com/ethereum/go-ethereum/core/types"
 
-	btc "github.com/axelarnetwork/axelar-core/vald/btc"
 	"github.com/axelarnetwork/axelar-core/x/evm/types"
 	nexus "github.com/axelarnetwork/axelar-core/x/nexus/exported"
 	voteTypes "github.com/axelarnetwork/axelar-core/x/vote/types"
@@ -16,9 +15,9 @@ import (
 
 // ProcessGatewayTxConfirmation votes on the correctness of an EVM chain gateway's transactions
 func (mgr Mgr) ProcessGatewayTxConfirmation(event *types.ConfirmGatewayTxStarted) error {
-	if event.Chain == btc.CHAIN_BITCOIN {
-		return mgr.ProcessGatewayTxConfirmationBTC(event)
-	}
+	// if event.Chain == btc.CHAIN_BITCOIN {
+	// 	return mgr.ProcessGatewayTxConfirmationBTC(event)
+	// }
 	if !mgr.isParticipantOf(event.Participants) {
 		mgr.logger("pollID", event.PollID).Debug("ignoring gateway tx confirmation poll: not a participant")
 		return nil
