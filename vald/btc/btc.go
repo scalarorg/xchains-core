@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	CHAIN_BITCOIN = "Wbitcoin"
+	CHAIN_BITCOIN = "bitcoin"
 )
 
 // ErrNotFinalized is returned when a transaction is not finalized
