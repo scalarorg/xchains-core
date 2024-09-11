@@ -19,6 +19,8 @@ func (mgr Mgr) processGatewayTxsConfirmationBTC(event *types.ConfirmGatewayTxsSt
 		return nil
 	}
 
+	mgr.logger("event", event).Info("processGatewayTxsConfirmationBTC")
+
 	// Not need to check error because the ProcessGatewayTxConfirmation checked before, if it's not checked, please check it
 	btcMgr, _ := mgr.GetBtcMgr(event.Chain.String())
 

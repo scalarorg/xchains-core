@@ -62,7 +62,6 @@ func NewMgr(
 			log.Error(err.Error())
 			panic(err)
 		}
-
 		mgr, err := btc.NewMgr(cfg, clientCtx, broadcaster, valAddr, clientCtx.FromAddress)
 		if err != nil {
 			err = sdkerrors.Wrap(err, "failed to create an RPC connection for Btc chain. Verify your BTC Connection config.")
@@ -99,6 +98,7 @@ func NewMgr(
 
 func (mgr Mgr) GetBtcMgr(chainID string) (*btc.Mgr, error) {
 	btcMgr, ok := mgr.btcMgrs[chainID]
+	mgr.logger("chainID", chainID, "btcMgr", btcMgr, "ok", ok).Debug("getting btc manager")
 	if !ok {
 		return nil, sdkerrors.Wrap(goerrors.New("chain id not found"), fmt.Sprintf("chain id %s not found", chainID))
 	}

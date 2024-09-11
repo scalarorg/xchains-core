@@ -19,9 +19,12 @@ func (mgr Mgr) ProcessGatewayTxConfirmation(event *types.ConfirmGatewayTxStarted
 	// 	return mgr.ProcessGatewayTxConfirmationBTC(event)
 	// }
 
-	if _, err := mgr.GetBtcMgr(event.Chain.String()); err != nil {
+	btcMgr, _ := mgr.GetBtcMgr(event.Chain.String())
+	if btcMgr != nil {
 		return mgr.processGatewayTxConfirmationBTC(event)
 	}
+
+	mgr.logger("event", event).Info("ProcessGatewayTxConfirmation")
 
 	if !mgr.isParticipantOf(event.Participants) {
 		mgr.logger("pollID", event.PollID).Debug("ignoring gateway tx confirmation poll: not a participant")

@@ -39,6 +39,9 @@ func NewMgr(btcConfig btctypes.BTCConfig, cliCtx sdkClient.Context, broadcaster 
 
 	btcClientLogger := log.WithKeyVals("chain", btcConfig.Name, "url", btcConfig.Host)
 	rpcConfig := btcConfig.GetRPCConfig()
+	if rpcConfig.Host == "" {
+		return nil, sdkerrors.New("btc", 1, "btc rpc host is empty") // nolint: goerr113
+	}
 	btcClient, err := rpc.NewClient(rpcConfig, btcClientLogger)
 	if err != nil {
 		err = sdkerrors.Wrap(err, "failed to create a BTC RPC client")
