@@ -1,11 +1,10 @@
-package evm
+package btc
 
 import (
 	"context"
 
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
-	btc "github.com/axelarnetwork/axelar-core/vald/btc"
 	"github.com/axelarnetwork/axelar-core/vald/btc/rpc"
 	"github.com/axelarnetwork/axelar-core/x/evm/types"
 	nexus "github.com/axelarnetwork/axelar-core/x/nexus/exported"
@@ -13,18 +12,15 @@ import (
 )
 
 // ProcessGatewayTxConfirmation votes on the correctness of an EVM chain gateway's transactions
-func (mgr Mgr) processGatewayTxConfirmationBTC(event *types.ConfirmGatewayTxStarted) error {
+func (mgr Mgr) ProcessGatewayTxConfirmationBTC(event *types.ConfirmGatewayTxStarted) error {
 	if !mgr.isParticipantOf(event.Participants) {
 		mgr.logger("pollID", event.PollID).Debug("ignoring gateway tx confirmation poll: not a participant")
 		return nil
 	}
 
-	// Not need to check error because the ProcessGatewayTxConfirmation checked before
-	btcMgr, _ := mgr.GetBtcMgr(event.Chain.String())
-
 	var vote *voteTypes.VoteRequest
 
-	txReceipt, err := btcMgr.GetTxIfFinalized(event.TxID, event.ConfirmationHeight)
+	txReceipt, err := mgr.GetTxIfFinalized(event.TxID, event.ConfirmationHeight)
 
 	if err != nil {
 		return err
@@ -51,7 +47,7 @@ func (mgr Mgr) processGatewayTxBTC(chain nexus.ChainName, _ types.Address, tx rp
 	var events []types.Event
 
 	// Temporary workaround with Event_ContractCall for BTC
-	btcEvent, err := btc.DecodeEventContractCall(&tx, mgr.evmConfigs)
+	btcEvent, err := DecodeEventContractCall(&tx, mgr.evmConfigs)
 
 	if err != nil {
 		mgr.logger().Debug(sdkerrors.Wrap(err, "decode event ContractCall failed").Error())

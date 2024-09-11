@@ -15,11 +15,13 @@ import (
 	"github.com/axelarnetwork/axelar-core/utils/errors"
 	btc "github.com/axelarnetwork/axelar-core/vald/btc"
 	"github.com/axelarnetwork/axelar-core/vald/evm/rpc"
-	"github.com/axelarnetwork/axelar-core/x/evm/types"
+	btcTypes "github.com/axelarnetwork/axelar-core/x/btc/types"
+	evmTypes "github.com/axelarnetwork/axelar-core/x/evm/types"
 	nexus "github.com/axelarnetwork/axelar-core/x/nexus/exported"
 	"github.com/axelarnetwork/utils/log"
 	"github.com/axelarnetwork/utils/monads/results"
 	"github.com/axelarnetwork/utils/slices"
+	sdkClient "github.com/cosmos/cosmos-sdk/client"
 )
 
 // ErrNotFinalized is returned when a transaction is not finalized
@@ -35,19 +37,73 @@ type Mgr struct {
 	validator                 sdk.ValAddress
 	proxy                     sdk.AccAddress
 	latestFinalizedBlockCache LatestFinalizedBlockCache
-	btcMgr                    *btc.Mgr
+	//TODO: btcMgr is a map of chainID to btc.Mgr -> refactor ChainID as type
+	btcMgrs map[string]*btc.Mgr
+	//TODO: evmConfigs is a map of chainID to EVMConfig -> refactor ChainID as type
+	evmConfigs map[int64]evmTypes.EVMConfig
 }
 
 // NewMgr returns a new Mgr instance
-func NewMgr(rpcs map[string]rpc.Client, broadcaster broadcast.Broadcaster, valAddr sdk.ValAddress, proxy sdk.AccAddress, latestFinalizedBlockCache LatestFinalizedBlockCache, btcMgr *btc.Mgr) *Mgr {
+func NewMgr(
+	clientCtx sdkClient.Context,
+	rpcs map[string]rpc.Client,
+	broadcaster broadcast.Broadcaster,
+	valAddr sdk.ValAddress,
+	caches LatestFinalizedBlockCache,
+	evmConfigs []evmTypes.EVMConfig,
+	btcConfigs []btcTypes.BTCConfig) *Mgr {
+
+	btcMgrs := make(map[string]*btc.Mgr)
+
+	for _, cfg := range btcConfigs {
+		_, ok := btcMgrs[cfg.ChainID]
+		if ok {
+			err := sdkerrors.Wrap(goerrors.New("duplicate chain id"), fmt.Sprintf("duplicate chain id %s", cfg.ChainID))
+			log.Error(err.Error())
+			panic(err)
+		}
+
+		mgr, err := btc.NewMgr(cfg, clientCtx, broadcaster, valAddr, clientCtx.FromAddress)
+		if err != nil {
+			err = sdkerrors.Wrap(err, "failed to create an RPC connection for Btc chain. Verify your BTC Connection config.")
+			log.Error(err.Error())
+			panic(err)
+		}
+
+		btcMgrs[cfg.ChainID] = mgr
+	}
+
+	selfConfigs := make(map[int64]evmTypes.EVMConfig)
+
+	for _, cfg := range evmConfigs {
+		_, ok := selfConfigs[cfg.ChainID]
+		if ok {
+			err := sdkerrors.Wrap(goerrors.New("duplicate chain id"), fmt.Sprintf("duplicate chain id %d", cfg.ChainID))
+			log.Error(err.Error())
+			panic(err)
+		}
+
+		selfConfigs[cfg.ChainID] = cfg
+	}
+
 	return &Mgr{
 		rpcs:                      rpcs,
-		proxy:                     proxy,
 		broadcaster:               broadcaster,
 		validator:                 valAddr,
-		latestFinalizedBlockCache: latestFinalizedBlockCache,
-		btcMgr:                    btcMgr,
+		proxy:                     clientCtx.FromAddress,
+		latestFinalizedBlockCache: caches,
+		evmConfigs:                selfConfigs,
+		btcMgrs:                   btcMgrs,
 	}
+}
+
+func (mgr Mgr) GetBtcMgr(chainID string) (*btc.Mgr, error) {
+	btcMgr, ok := mgr.btcMgrs[chainID]
+	if !ok {
+		return nil, sdkerrors.Wrap(goerrors.New("chain id not found"), fmt.Sprintf("chain id %s not found", chainID))
+	}
+
+	return btcMgr, nil
 }
 
 func (mgr Mgr) logger(keyvals ...any) log.Logger {
@@ -56,7 +112,7 @@ func (mgr Mgr) logger(keyvals ...any) log.Logger {
 }
 
 // ProcessNewChain notifies the operator that vald needs to be restarted/udpated for a new chain
-func (mgr Mgr) ProcessNewChain(event *types.ChainAdded) (err error) {
+func (mgr Mgr) ProcessNewChain(event *evmTypes.ChainAdded) (err error) {
 	mgr.logger().Info(fmt.Sprintf("VALD needs to be updated and restarted for new chain %s", event.Chain.String()))
 	return nil
 }

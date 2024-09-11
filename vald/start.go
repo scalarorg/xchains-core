@@ -39,6 +39,7 @@ import (
 	grpc "github.com/axelarnetwork/axelar-core/vald/tofnd_grpc"
 	"github.com/axelarnetwork/axelar-core/vald/tss"
 	axelarnet "github.com/axelarnetwork/axelar-core/x/axelarnet/exported"
+	"github.com/axelarnetwork/axelar-core/x/btc/types"
 	evmTypes "github.com/axelarnetwork/axelar-core/x/evm/types"
 	multisigTypes "github.com/axelarnetwork/axelar-core/x/multisig/types"
 	"github.com/axelarnetwork/axelar-core/x/tss/tofnd"
@@ -203,8 +204,15 @@ func listen(clientCtx sdkClient.Context, txf tx.Factory, axelarCfg config.ValdCo
 		return cl, nil
 	})
 	tssMgr := createTSSMgr(bc, clientCtx, axelarCfg, valAddr.String(), cdc)
+	// btcMgr := createBTCMgr(axelarCfg, clientCtx, bc, valAddr)
+	evmMgr := createEVMMgr(&createEVMMgrParams{
+		clientCtx:   clientCtx,
+		evmConfigs:  axelarCfg.EVMConfig,
+		btcConfigs:  axelarCfg.BTCConfig,
+		broadcaster: bc,
+		valAddr:     valAddr,
+	})
 
-	evmMgr := createEVMMgr(axelarCfg, clientCtx, bc, valAddr)
 	multisigMgr := createMultisigMgr(bc, clientCtx, axelarCfg, valAddr)
 	nodeHeight, err := waitUntilNetworkSync(axelarCfg, robustClient)
 	if err != nil {
@@ -240,6 +248,7 @@ func listen(clientCtx sdkClient.Context, txf tx.Factory, axelarCfg config.ValdCo
 	evmTraConf := eventBus.Subscribe(tmEvents.Filter[*evmTypes.ConfirmKeyTransferStarted]())
 	evmGatewayTxConf := eventBus.Subscribe(tmEvents.Filter[*evmTypes.ConfirmGatewayTxStarted]())
 	evmGatewayTxsConf := eventBus.Subscribe(tmEvents.Filter[*evmTypes.ConfirmGatewayTxsStarted]())
+	// btcGatewayTxsConf := eventBus.Subscribe(tmEvents.Filter[*btcTypes.ConfirmGatewayTxsStarted]())
 	multisigKeygen := eventBus.Subscribe(tmEvents.Filter[*multisigTypes.KeygenStarted]())
 	multisigSigning := eventBus.Subscribe(tmEvents.Filter[*multisigTypes.SigningStarted]())
 
@@ -299,6 +308,7 @@ func listen(clientCtx sdkClient.Context, txf tx.Factory, axelarCfg config.ValdCo
 		createJobTyped(evmTraConf, evmMgr.ProcessTransferKeyConfirmation, cancelEventCtx),
 		createJobTyped(evmGatewayTxConf, evmMgr.ProcessGatewayTxConfirmation, cancelEventCtx),
 		createJobTyped(evmGatewayTxsConf, evmMgr.ProcessGatewayTxsConfirmation, cancelEventCtx),
+		// createJobTyped(btcGatewayTxsConf, btcMgr.ProcessGatewayTxsConfirmation, cancelEventCtx),
 		createJobTyped(multisigKeygen, multisigMgr.ProcessKeygenStarted, cancelEventCtx),
 		createJobTyped(multisigSigning, multisigMgr.ProcessSigningStarted, cancelEventCtx),
 	}
@@ -457,14 +467,33 @@ func createEVMClient(config evmTypes.EVMConfig) (evmRPC.Client, error) {
 	return evmRPC.NewClient(config.RPCAddr, config.FinalityOverride)
 }
 
-func createEVMMgr(axelarCfg config.ValdConfig, cliCtx sdkClient.Context, b broadcast.Broadcaster, valAddr sdk.ValAddress) *evm.Mgr {
+// FIXME: This function is not used in the codebase
+func createBTCMgr(btcConfig types.BTCConfig, cliCtx sdkClient.Context, b broadcast.Broadcaster, valAddr sdk.ValAddress) *btc.Mgr {
+	btcMgr, err := btc.NewMgr(btcConfig, cliCtx, b, valAddr, cliCtx.FromAddress)
+	if err != nil {
+		err = sdkerrors.Wrap(err, fmt.Sprintf("failed to create an RPC connection for Btc chain. Verify your BTC Connection config."))
+		log.Error(err.Error())
+		panic(err)
+	}
+	return btcMgr
+}
+
+type createEVMMgrParams struct {
+	clientCtx   sdkClient.Context
+	evmConfigs  []evmTypes.EVMConfig
+	btcConfigs  []types.BTCConfig
+	broadcaster broadcast.Broadcaster
+	valAddr     sdk.ValAddress
+}
+
+func createEVMMgr(params *createEVMMgrParams) *evm.Mgr {
 	rpcs := make(map[string]evmRPC.Client)
 
-	chainConfigs := slices.Filter(axelarCfg.EVMConfig, func(config evmTypes.EVMConfig) bool {
+	bridgedChains := slices.Filter(params.evmConfigs, func(config evmTypes.EVMConfig) bool {
 		return config.WithBridge
 	})
 
-	slices.ForEach(chainConfigs, func(config evmTypes.EVMConfig) {
+	slices.ForEach(bridgedChains, func(config evmTypes.EVMConfig) {
 		chainName := strings.ToLower(config.Name)
 		if _, ok := rpcs[chainName]; ok {
 			err := fmt.Errorf("duplicate bridge configuration found for EVM chain %s", config.Name)
@@ -493,13 +522,9 @@ func createEVMMgr(axelarCfg config.ValdConfig, cliCtx sdkClient.Context, b broad
 		log.Infof("successfully connected to EVM bridge for chain %s", chainName)
 	})
 
-	btcMgr, err := btc.NewMgr(axelarCfg.BTCConfig, cliCtx, b, valAddr)
-	if err != nil {
-		err = sdkerrors.Wrap(err, fmt.Sprintf("failed to create an RPC connection for Btc chain. Verify your BTC Connection config."))
-		log.Error(err.Error())
-		panic(err)
-	}
-	return evm.NewMgr(rpcs, b, valAddr, cliCtx.FromAddress, evm.NewLatestFinalizedBlockCache(), btcMgr)
+	caches := evm.NewLatestFinalizedBlockCache()
+	return evm.NewMgr(params.clientCtx, rpcs, params.broadcaster, params.valAddr, caches, params.evmConfigs, params.btcConfigs)
+
 }
 
 // RWFile implements the ReadWriter interface for an underlying file
