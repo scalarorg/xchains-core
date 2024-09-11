@@ -97,9 +97,8 @@ func NewMgr(
 }
 
 func (mgr Mgr) GetBtcMgr(chainID string) (*btc.Mgr, error) {
-	mgr.logger("chain_id", chainID).Debug("getting btc manager")
 	btcMgr, ok := mgr.btcMgrs[chainID]
-	mgr.logger("chain_id", chainID).Debugf("BitcoinMng %+v\n", btcMgr)
+	mgr.logger("chainID", chainID, "btcMgr", btcMgr, "ok", ok).Debug("getting btc manager")
 	if !ok {
 		return nil, sdkerrors.Wrap(goerrors.New("chain id not found"), fmt.Sprintf("chain id %s not found", chainID))
 	}

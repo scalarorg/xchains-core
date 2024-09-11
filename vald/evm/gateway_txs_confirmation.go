@@ -18,9 +18,12 @@ func (mgr Mgr) ProcessGatewayTxsConfirmation(event *types.ConfirmGatewayTxsStart
 	// 	return mgr.ProcessGatewayTxsConfirmationBTC(event)
 	// }
 
-	if _, err := mgr.GetBtcMgr(event.Chain.String()); err != nil {
+	btcMgr, _ := mgr.GetBtcMgr(event.Chain.String())
+	if btcMgr != nil {
 		return mgr.processGatewayTxsConfirmationBTC(event)
 	}
+
+	mgr.logger("event", event).Info("ProcessGatewayTxsConfirmation")
 
 	if !mgr.isParticipantOf(event.Participants) {
 		pollIDs := slices.Map(event.PollMappings, func(m types.PollMapping) vote.PollID { return m.PollID })
