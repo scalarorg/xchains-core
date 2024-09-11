@@ -25,6 +25,7 @@ services:
     image: "scalarorg/xchains-core"
     volumes:
       - ../config/validator_start.sh:/validator_start.sh
+      - ../config/chains/${ENV}:/chains:Z
     cap_add:
       - SYS_PTRACE
     environment:
