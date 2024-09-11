@@ -5,6 +5,7 @@ import "github.com/axelarnetwork/axelar-core/vald/evm/rpc"
 // EVMConfig contains all EVM module configuration values
 type EVMConfig struct {
 	Name             string               `mapstructure:"name"`
+	ChainID          int64                  `mapstructure:"chain_id"`
 	RPCAddr          string               `mapstructure:"rpc_addr"`
 	WithBridge       bool                 `mapstructure:"start-with-bridge"`
 	L1ChainName      *string              `mapstructure:"l1_chain_name"` // Deprecated: Do not use.

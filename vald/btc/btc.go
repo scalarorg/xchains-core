@@ -29,6 +29,9 @@ type Mgr struct {
 	validator   sdk.ValAddress
 	proxy       sdk.AccAddress
 	config      btctypes.BTCConfig
+
+	// TODO: evmConfigs is a map of chainID EVMConfig -> refactor ChainID as type
+	evmConfigs map[int64]types.EVMConfig
 }
 
 // NewMgr returns a new Mgr instance
@@ -48,6 +51,9 @@ func NewMgr(btcConfig btctypes.BTCConfig, cliCtx sdkClient.Context, broadcaster 
 		validator:   valAddr,
 		proxy:       proxy,
 		rpc:         btcClient,
+
+		// FIXME: evmConfigs is not initialized
+		evmConfigs: make(map[int64]types.EVMConfig),
 	}, nil
 }
 

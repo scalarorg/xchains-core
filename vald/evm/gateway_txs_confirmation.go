@@ -17,6 +17,11 @@ func (mgr Mgr) ProcessGatewayTxsConfirmation(event *types.ConfirmGatewayTxsStart
 	// if event.Chain == btc.CHAIN_BITCOIN {
 	// 	return mgr.ProcessGatewayTxsConfirmationBTC(event)
 	// }
+
+	if _, err := mgr.GetBtcMgr(event.Chain.String()); err != nil {
+		return mgr.processGatewayTxsConfirmationBTC(event)
+	}
+
 	if !mgr.isParticipantOf(event.Participants) {
 		pollIDs := slices.Map(event.PollMappings, func(m types.PollMapping) vote.PollID { return m.PollID })
 		mgr.logger("poll_ids", pollIDs).Debug("ignoring gateway txs confirmation poll: not a participant")

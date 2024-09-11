@@ -47,7 +47,7 @@ func (mgr Mgr) processGatewayTxBTC(chain nexus.ChainName, _ types.Address, tx rp
 	var events []types.Event
 
 	// Temporary workaround with Event_ContractCall for BTC
-	btcEvent, err := DecodeEventContractCall(&tx)
+	btcEvent, err := DecodeEventContractCall(&tx, mgr.evmConfigs)
 
 	if err != nil {
 		mgr.logger().Debug(sdkerrors.Wrap(err, "decode event ContractCall failed").Error())

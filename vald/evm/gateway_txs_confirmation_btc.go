@@ -12,15 +12,18 @@ import (
 )
 
 // ProcessGatewayTxsConfirmation votes on the correctness of an EVM chain multiple gateway transactions
-func (mgr Mgr) ProcessGatewayTxsConfirmationBTC(event *types.ConfirmGatewayTxsStarted) error {
+func (mgr Mgr) processGatewayTxsConfirmationBTC(event *types.ConfirmGatewayTxsStarted) error {
 	if !mgr.isParticipantOf(event.Participants) {
 		pollIDs := slices.Map(event.PollMappings, func(m types.PollMapping) vote.PollID { return m.PollID })
 		mgr.logger("poll_ids", pollIDs).Debug("ignoring gateway txs confirmation poll: not a participant")
 		return nil
 	}
 
+	// Not need to check error because the ProcessGatewayTxConfirmation checked before, if it's not checked, please check it
+	btcMgr, _ := mgr.GetBtcMgr(event.Chain.String())
+
 	txIDs := slices.Map(event.PollMappings, func(poll types.PollMapping) types.Hash { return poll.TxID })
-	txReceipts, err := mgr.btcMgr.GetTxsIfFinalized(txIDs, event.ConfirmationHeight)
+	txReceipts, err := btcMgr.GetTxsIfFinalized(txIDs, event.ConfirmationHeight)
 
 	if err != nil {
 		return err
