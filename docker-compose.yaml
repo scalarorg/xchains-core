@@ -10,7 +10,7 @@ services:
     working_dir: /
     volumes:
       - ../.testnets:/home/axelard/.testnets:Z
-      - ../config/bridge.toml:/home/axelard/.testnets/bridge.toml:Z
+      - ../config/bridge.toml:/home/axelard/bridge.toml:Z
     environment:
       - AXELARD_CHAIN_ID=scalar-testnet-1
       - KEYRING_PASSWORD=${KEYRING_PASSWORD}
