@@ -89,7 +89,8 @@ type BTCConfig struct {
 	// when connecting to blockchain.info RPC server
 	EnableBCInfoHacks bool
 	Name              string `mapstructure:"name"`
-	ChainID           string `mapstructure:"chain_id"`
+	ChainID           uint64 `mapstructure:"chain_id"`
+	ID                string `mapstructure:"id"`
 }
 
 // DefaultConfig returns a configuration populated with default values
@@ -99,7 +100,8 @@ func DefaultConfig() []BTCConfig {
 		User:    "user",
 		Pass:    "password",
 		Name:    "bitcoin",
-		ChainID: "bitcoin-regtest",
+		ChainID: 2,
+		ID:      "bitcoin-regtest",
 	}}
 }
 func (c *BTCConfig) GetRPCConfig() *rpcclient.ConnConfig {

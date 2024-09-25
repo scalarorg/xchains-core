@@ -37,7 +37,7 @@ type Mgr struct {
 	validator                 sdk.ValAddress
 	proxy                     sdk.AccAddress
 	latestFinalizedBlockCache LatestFinalizedBlockCache
-	//TODO: btcMgr is a map of chainID to btc.Mgr -> refactor ChainID as type
+	//TODO: btcMgr is a map of ID to btc.Mgr -> refactor ID as type
 	btcMgrs map[string]*btc.Mgr
 	//TODO: evmConfigs is a map of chainID to EVMConfig -> refactor ChainID as type
 	evmConfigs map[int64]evmTypes.EVMConfig
@@ -56,9 +56,9 @@ func NewMgr(
 	btcMgrs := make(map[string]*btc.Mgr)
 
 	for _, cfg := range btcConfigs {
-		_, ok := btcMgrs[cfg.ChainID]
+		_, ok := btcMgrs[cfg.ID]
 		if ok {
-			err := sdkerrors.Wrap(goerrors.New("duplicate chain id"), fmt.Sprintf("duplicate chain id %s", cfg.ChainID))
+			err := sdkerrors.Wrap(goerrors.New("duplicate chain id"), fmt.Sprintf("duplicate chain id %s", cfg.ID))
 			log.Error(err.Error())
 			panic(err)
 		}
@@ -69,7 +69,7 @@ func NewMgr(
 			panic(err)
 		}
 
-		btcMgrs[cfg.ChainID] = mgr
+		btcMgrs[cfg.ID] = mgr
 	}
 
 	selfConfigs := make(map[int64]evmTypes.EVMConfig)
@@ -96,11 +96,11 @@ func NewMgr(
 	}
 }
 
-func (mgr Mgr) GetBtcMgr(chainID string) (*btc.Mgr, error) {
-	btcMgr, ok := mgr.btcMgrs[chainID]
-	mgr.logger("chainID", chainID, "btcMgr", btcMgr, "ok", ok).Debug("getting btc manager")
+func (mgr Mgr) GetBtcMgr(ID string) (*btc.Mgr, error) {
+	btcMgr, ok := mgr.btcMgrs[ID]
+	mgr.logger("chainID", ID, "btcMgr", btcMgr, "ok", ok).Debug("getting btc manager")
 	if !ok {
-		return nil, sdkerrors.Wrap(goerrors.New("chain id not found"), fmt.Sprintf("chain id %s not found", chainID))
+		return nil, sdkerrors.Wrap(goerrors.New("chain id not found"), fmt.Sprintf("chain id %s not found", ID))
 	}
 
 	return btcMgr, nil
