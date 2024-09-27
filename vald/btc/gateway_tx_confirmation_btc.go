@@ -31,6 +31,8 @@ func (mgr Mgr) ProcessGatewayTxConfirmationBTC(event *types.ConfirmGatewayTxStar
 
 		mgr.logger().Infof("broadcasting empty vote for poll %s: %s", event.PollID.String(), txReceipt.Err().Error())
 	} else {
+		mgr.logger("event.ConfirmationHeight", event.ConfirmationHeight).Debug("processing gateway tx confirmation")
+
 		events := mgr.processGatewayTxBTC(event.Chain, event.GatewayAddress, txReceipt.Ok(), event.TxID)
 		vote = voteTypes.NewVoteRequest(mgr.proxy, event.PollID, types.NewVoteEvents(event.Chain, events...))
 
