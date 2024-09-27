@@ -2,6 +2,7 @@ package btc
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 
@@ -69,8 +70,21 @@ func DecodeEventContractCall(tx *rpc.BTCTransaction, evmConfigs map[int64]evmTyp
 	abi_address_payload := types.Hash(common.BytesToHash(payloadData.ChainIdUserAddress))
 
 	abi_payload := append(abi_address_payload[:], abi_minting_payload[:]...)
-	// Get the payload hash
-	payloadHash := evmTypes.Hash(common.BytesToHash(crypto.Keccak256(abi_payload)))
+
+	btcTxBlockTimeToBytes := make([]byte, 8)
+
+	binary.BigEndian.PutUint64(btcTxBlockTimeToBytes, uint64(tx.Data.Blocktime))
+
+	btcTxBlockTime := types.Hash(common.BytesToHash(btcTxBlockTimeToBytes))
+
+	payloadHash := evmTypes.Hash(common.BytesToHash(crypto.Keccak256(abi_payload, btcTxBlockTime[:])))
+
+	log.Infof("Encoded BTC info to EVM Call: %v\n", evmTypes.EventContractCall{
+		Sender:           sender,
+		DestinationChain: destinationChain,
+		ContractAddress:  contractAddress,
+		PayloadHash:      payloadHash,
+	})
 
 	return evmTypes.EventContractCall{
 		Sender:           sender,

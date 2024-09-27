@@ -2,6 +2,7 @@ package evm
 
 import (
 	"context"
+	"fmt"
 
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
@@ -18,6 +19,8 @@ func (mgr Mgr) processGatewayTxConfirmationBTC(event *types.ConfirmGatewayTxStar
 		mgr.logger("pollID", event.PollID).Debug("ignoring gateway tx confirmation poll: not a participant")
 		return nil
 	}
+
+	mgr.logger("event", event).Info(fmt.Sprintf("Confirmation height: %d", event.ConfirmationHeight))
 
 	mgr.logger("event", event).Info("processGatewayTxConfirmationBTC")
 
@@ -37,6 +40,9 @@ func (mgr Mgr) processGatewayTxConfirmationBTC(event *types.ConfirmGatewayTxStar
 
 		mgr.logger().Infof("broadcasting empty vote for poll %s: %s", event.PollID.String(), txReceipt.Err().Error())
 	} else {
+
+		mgr.logger().Debugf("processing gateway confirmation height %d", event.ConfirmationHeight)
+
 		events := mgr.processGatewayTxBTC(event.Chain, event.GatewayAddress, txReceipt.Ok(), event.TxID)
 		vote = voteTypes.NewVoteRequest(mgr.proxy, event.PollID, types.NewVoteEvents(event.Chain, events...))
 
