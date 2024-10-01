@@ -16,9 +16,9 @@ services:
       - KEYRING_PASSWORD=${KEYRING_PASSWORD}
       - OUTPUT_DIR=/home/axelard/.testnets
     extra_hosts:
-      - "evm-local:${HOST_EVM_LOCAL:-evm-local}"
-      - "bitcoin-regtest:${HOST_BITCOIN_REGTEST:-bitcoin-regtest}"  
-      - "bitcoin-testnet4:${HOST_BITCOIN_TESTNET4:-bitcoin-testnet4}"  
+      - "evm-local:${HOST_EVM_LOCAL:-host-gateway}"
+      - "bitcoin-regtest:${HOST_BITCOIN_REGTEST:-host-gateway}"  
+      - "bitcoin-testnet4:${HOST_BITCOIN_TESTNET4:-host-gateway}"  
 
   scalar-node:
     build:
@@ -38,9 +38,9 @@ services:
       - PEERS_FILE=/home/axelard/.axelar/peers.txt
       - LOG=${LOG:-axelard.log}
     extra_hosts:
-      - "evm-local:${HOST_EVM_LOCAL:-evm-local}"
-      - "bitcoin-regtest:${HOST_BITCOIN_REGTEST:-bitcoin-regtest}"  
-      - "bitcoin-testnet4:${HOST_BITCOIN_TESTNET4:-bitcoin-testnet4}"  
+      - "evm-local:${HOST_EVM_LOCAL:-host-gateway}"
+      - "bitcoin-regtest:${HOST_BITCOIN_REGTEST:-host-gateway}"  
+      - "bitcoin-testnet4:${HOST_BITCOIN_TESTNET4:-host-gateway}"  
     working_dir: /home/axelard
     entrypoint: /validator_start.sh
     security_opt:
