@@ -18,7 +18,8 @@ services:
     extra_hosts:
       - "evm-local:${HOST_EVM_LOCAL:-host-gateway}"
       - "bitcoin-regtest:${HOST_BITCOIN_REGTEST:-host-gateway}"  
-      - "bitcoin-testnet4:${HOST_BITCOIN_TESTNET4:-host-gateway}"  
+      # - "bitcoin-testnet4:${HOST_BITCOIN_TESTNET4:-host-gateway}"  
+      - "bitcoin-testnet3:${HOST_BITCOIN_TESTNET3:-host-gateway}"  
 
   scalar-node:
     build:
@@ -40,7 +41,7 @@ services:
     extra_hosts:
       - "evm-local:${HOST_EVM_LOCAL:-host-gateway}"
       - "bitcoin-regtest:${HOST_BITCOIN_REGTEST:-host-gateway}"  
-      - "bitcoin-testnet4:${HOST_BITCOIN_TESTNET4:-host-gateway}"  
+      - "bitcoin-testnet3:${HOST_BITCOIN_TESTNET3:-host-gateway}"  
     working_dir: /home/axelard
     entrypoint: /validator_start.sh
     security_opt:
