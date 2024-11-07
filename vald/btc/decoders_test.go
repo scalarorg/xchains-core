@@ -7,14 +7,16 @@ import (
 
 	"github.com/axelarnetwork/utils/log"
 	"github.com/btcsuite/btcd/wire"
-	"github.com/scalarorg/btc-vault/btcvault"
+	"github.com/ethereum/go-ethereum/common"
 
 	coreUtils "github.com/axelarnetwork/axelar-core/utils"
+	"github.com/axelarnetwork/axelar-core/vald/btc"
+	"github.com/axelarnetwork/axelar-core/x/evm/types"
 )
 
 func TestDecodeEventContractCall(t *testing.T) {
 
-	txHex := "02000000000101502f447e05fcbabe0c8d3d401db31cb1a2f74c66d530ff593b4df83adc0465ca0000000000fdffffff04f82a0000000000002251205cd309728cdf3d5e8f723530c7429c61855337866ee8e180c5e1e3f6a4ac76610000000000000000476a450102030400d529c49a30b8dfd061b3458893abe74345651adf0c723d1061aa945fcb0b5ff2332343ee3d4d01132920ab977f59f767b1aefb83d208e3e1a3a349b949ccb66a00000000000000003a6a380000000000aa36a7130c4810d57140e1e62967cbf742caeae91b6ece768e8de8cf0c7747d41f75f83c914a19c5921cf30000000000002af8a3eba704000000001600145c19d6bd3f9a24eeb584c9ef0f9a8d6c2348e65402463043021f7ee5a635e7d968f722b871b2aaaa802f3015ee303cae4ea8f7fc540ef646170220269cb89a422a893aeb754c78837d52a9f5aef7de6f411e0be01d352d34cc222b012103d529c49a30b8dfd061b3458893abe74345651adf0c723d1061aa945fcb0b5ff200000000"
+	txHex := "020000000001016f6651122da3f1fee9af65734274f5dbbc58d8b21d8e12a6510d0e12d40af1030200000000fdffffff03a086010000000000225120dade785d43c753bcc8c66f21fef05643ebb4d9812aa60782c7440189255bbb4b00000000000000003d6a013504531801040100080000000000aa36a714b91e3a8ef862567026d6f376c9f3d6b814ca43371424a1db57fa3ecafcbad91d6ef068439aceeae090c53d8f000000000016001450dceca158a9c872eb405d52293d351110572c9e02483045022100cd1c70983bf4991b8a9adc1ee5f3b6b67cdcd1c524241154cf7601dd01301347022022001f080250c4cc65b643438108d0724ed3cf20dd7f7ff6ad61fa0cb76f6a170121022ae31ea8709aeda8194ba3e2f7e7e95e680e8b65135c8983c0a298d17bc5350a00000000"
 
 	// Decode the hex string into bytes
 	txRaw, err := hex.DecodeString(txHex)
@@ -33,15 +35,31 @@ func TestDecodeEventContractCall(t *testing.T) {
 	if len(msgTx.TxOut) < 3 {
 		t.Errorf("btcLocking tx must have at least 3 outputs")
 	}
-	payloadData, err := btcvault.NewPayloadOpReturnDataFromTxOutput(msgTx.TxOut[2])
+
+	payload, err := btc.NewOpReturnData(msgTx.TxOut)
 	if err != nil {
 		t.Error("cannot parse payload op return data: ", err)
 	}
 
-	chainId, err := coreUtils.BytesToInt64BigEndian(payloadData.ChainID)
+	t.Logf("Payload tag: %x", payload.Tag)
+	t.Logf("Payload version: %x", payload.Version)
+	t.Logf("Payload destination chain id: %x", payload.DestinationChainID)
+	t.Logf("Payload destination recipient addr: %x", payload.DestinationRecipientAddr)
+	t.Logf("Payload destination contract addr: %x", payload.DestinationContractAddr)
+
+	chainId, err := coreUtils.BytesToInt64BigEndian(payload.DestinationChainID[:])
 	if err != nil {
 		t.Error("cannot parse chain id: ", err)
 	}
+
+	mintingAmount, err := btc.GetMintingAmount(msgTx.TxOut[0])
+	if err != nil {
+		t.Error("cannot get minting amount: ", err)
+	}
+
+	abi_minting_payload := types.Hash(common.BytesToHash(mintingAmount[:]))
+
+	t.Logf("Minting amount: %x", abi_minting_payload)
 
 	t.Log("Chain ID: ", chainId)
 }

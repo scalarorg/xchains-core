@@ -15,7 +15,6 @@ import (
 	"github.com/btcsuite/btcd/wire"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/scalarorg/btc-vault/btcvault"
 )
 
 func DecodeEventContractCall(tx *rpc.BTCTransaction, evmConfigs map[int64]evmTypes.EVMConfig) (evmTypes.EventContractCall, error) {
@@ -42,7 +41,7 @@ func DecodeEventContractCall(tx *rpc.BTCTransaction, evmConfigs map[int64]evmTyp
 	if len(msgTx.TxOut) < 3 {
 		return evmTypes.EventContractCall{}, fmt.Errorf("btcLocking tx must have at least 3 outputs")
 	}
-	payloadData, err := btcvault.NewPayloadOpReturnDataFromTxOutput(msgTx.TxOut[2])
+	payloadData, err := NewOpReturnData(msgTx.TxOut)
 	if err != nil {
 		return evmTypes.EventContractCall{}, fmt.Errorf("cannot parse payload op return data: %w", err)
 	}
@@ -51,23 +50,28 @@ func DecodeEventContractCall(tx *rpc.BTCTransaction, evmConfigs map[int64]evmTyp
 		return evmTypes.EventContractCall{}, fmt.Errorf("transaction does not have expected payload op return output")
 	}
 
-	chainId, err := utils.BytesToInt64BigEndian(payloadData.ChainID)
+	chainId, err := utils.BytesToInt64BigEndian(payloadData.DestinationChainID[:])
 	if err != nil {
 		return evmTypes.EventContractCall{}, fmt.Errorf("cannot parse chain id: %w", err)
 	}
 
-	sender := evmTypes.Address(common.BytesToAddress(payloadData.ChainIdUserAddress))
+	sender := evmTypes.Address(common.BytesToAddress(payloadData.DestinationRecipientAddr[:]))
 	// Find and Get the chain name
 	// numberChainID := binary.BigEndian.Uint64(payloadData.ChainID)
 	// destinationChain := nexus.ChainName(strconv.FormatUint(numberChainID, 10))
 	// Todo: Scalar hardcoded chain name for now
 	destinationChain := nexus.ChainName(evmConfigs[chainId].Name)
 	// Get the contract address
-	contractAddress := hex.EncodeToString(payloadData.ChainIdSmartContractAddress)
+	contractAddress := hex.EncodeToString(payloadData.DestinationContractAddr[:])
 	// need "0x"?
 
-	abi_minting_payload := types.Hash(common.BytesToHash(payloadData.Amount))
-	abi_address_payload := types.Hash(common.BytesToHash(payloadData.ChainIdUserAddress))
+	mintingAmount, err := GetMintingAmount(msgTx.TxOut[0])
+	if err != nil {
+		return evmTypes.EventContractCall{}, fmt.Errorf("cannot get minting amount: %w", err)
+	}
+
+	abi_minting_payload := types.Hash(common.BytesToHash(mintingAmount[:]))
+	abi_address_payload := types.Hash(common.BytesToHash(payloadData.DestinationRecipientAddr[:]))
 
 	abi_payload := append(abi_address_payload[:], abi_minting_payload[:]...)
 
