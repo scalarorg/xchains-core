@@ -2,19 +2,15 @@ package btc
 
 import (
 	"bytes"
-	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 
 	"github.com/axelarnetwork/axelar-core/utils"
 	"github.com/axelarnetwork/axelar-core/vald/btc/rpc"
-	"github.com/axelarnetwork/axelar-core/x/btc/types"
 	evmTypes "github.com/axelarnetwork/axelar-core/x/evm/types"
 	nexus "github.com/axelarnetwork/axelar-core/x/nexus/exported"
 	"github.com/axelarnetwork/utils/log"
 	"github.com/btcsuite/btcd/wire"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 )
 
 func DecodeEventContractCall(tx *rpc.BTCTransaction, evmConfigs map[int64]evmTypes.EVMConfig) (evmTypes.EventContractCall, error) {
@@ -41,51 +37,42 @@ func DecodeEventContractCall(tx *rpc.BTCTransaction, evmConfigs map[int64]evmTyp
 	if len(msgTx.TxOut) < 3 {
 		return evmTypes.EventContractCall{}, fmt.Errorf("btcLocking tx must have at least 3 outputs")
 	}
-	payloadData, err := NewOpReturnData(msgTx.TxOut)
+	payload, err := NewOpReturnData(msgTx.TxOut)
 	if err != nil {
 		return evmTypes.EventContractCall{}, fmt.Errorf("cannot parse payload op return data: %w", err)
 	}
 
-	if payloadData == nil {
+	if payload == nil {
 		return evmTypes.EventContractCall{}, fmt.Errorf("transaction does not have expected payload op return output")
 	}
 
-	chainId, err := utils.BytesToInt64BigEndian(payloadData.DestinationChainID[:])
+	chainId, err := utils.BytesToInt64BigEndian(payload.DestinationChainID[:])
 	if err != nil {
 		return evmTypes.EventContractCall{}, fmt.Errorf("cannot parse chain id: %w", err)
 	}
 
-	sender := evmTypes.Address(common.BytesToAddress(payloadData.DestinationRecipientAddr[:]))
-	// Find and Get the chain name
-	// numberChainID := binary.BigEndian.Uint64(payloadData.ChainID)
-	// destinationChain := nexus.ChainName(strconv.FormatUint(numberChainID, 10))
-	// Todo: Scalar hardcoded chain name for now
-	destinationChain := nexus.ChainName(evmConfigs[chainId].Name)
-	// Get the contract address
-	contractAddress := hex.EncodeToString(payloadData.DestinationContractAddr[:])
-	// need "0x"?
+	sender := payload.DestinationRecipientAddr
+	mintingAmount := msgTx.TxOut[0].Value
+	blockTime := tx.Data.Blocktime
 
-	mintingAmount, err := GetMintingAmount(msgTx.TxOut[0])
+	payloadHash, err := GetPayloadHash(sender, mintingAmount, blockTime)
 	if err != nil {
-		return evmTypes.EventContractCall{}, fmt.Errorf("cannot get minting amount: %w", err)
+		return evmTypes.EventContractCall{}, fmt.Errorf("failed to get payload hash: %w", err)
 	}
 
-	abi_minting_payload := types.Hash(common.BytesToHash(mintingAmount[:]))
-	abi_address_payload := types.Hash(common.BytesToHash(payloadData.DestinationRecipientAddr[:]))
+	destinationChain := nexus.ChainName(evmConfigs[chainId].Name)
+	contractAddress := hex.EncodeToString(payload.DestinationContractAddr[:])
 
-	abi_payload := append(abi_address_payload[:], abi_minting_payload[:]...)
-
-	btcTxBlockTimeToBytes := make([]byte, 8)
-
-	binary.BigEndian.PutUint64(btcTxBlockTimeToBytes, uint64(tx.Data.Blocktime))
-
-	btcTxBlockTime := types.Hash(common.BytesToHash(btcTxBlockTimeToBytes))
-
-	payloadHash := evmTypes.Hash(common.BytesToHash(crypto.Keccak256(abi_payload, btcTxBlockTime[:])))
+	log.Debugf("Encoded Data: %v\n", map[string]interface{}{
+		"sender":        sender,
+		"mintingAmount": mintingAmount,
+		"blockTime":     blockTime,
+		"payloadHash":   payloadHash,
+	})
 
 	log.Infof("Encoded BTC info to EVM Call: %v\n", evmTypes.EventContractCall{
 		Sender:           sender,
-		DestinationChain: destinationChain,
+		DestinationChain: destinationChain, // not used
 		ContractAddress:  contractAddress,
 		PayloadHash:      payloadHash,
 	})

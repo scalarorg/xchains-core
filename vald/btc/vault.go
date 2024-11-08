@@ -5,8 +5,12 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/axelarnetwork/axelar-core/x/evm/types"
+	evmTypes "github.com/axelarnetwork/axelar-core/x/evm/types"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 // OP_RETURN
@@ -66,18 +70,44 @@ func NewOpReturnData(txOuts []*wire.TxOut) (*OpReturnData, error) {
 	idx += 9 // Move index by 8 bytes for ChainID + 1 for opcode
 
 	// Skip over `OP_PUSHBYTES_20` (1 byte) and map 20 bytes to DestinationRecipientAddr
-	copy(opReturn.DestinationRecipientAddr[:], data[idx+1:idx+21])
+	copy(opReturn.DestinationContractAddr[:], data[idx+1:idx+21])
 	idx += 21 // Move index by 20 bytes for RecipientAddr + 1 for opcode
 
 	// Skip over `OP_PUSHBYTES_20` (1 byte) and map 20 bytes to DestinationContractAddr
-	copy(opReturn.DestinationContractAddr[:], data[idx+1:idx+21])
+	copy(opReturn.DestinationRecipientAddr[:], data[idx+1:idx+21])
 	idx += 21 // Move index by 20 bytes for ContractAddr + 1 for opcode
 
 	return &opReturn, nil
 }
 
-func GetMintingAmount(txOut *wire.TxOut) ([]byte, error) {
-	buf := make([]byte, 8)
-	binary.BigEndian.PutUint64(buf, uint64(txOut.Value))
-	return buf, nil
+func GetMintingAmount(txOut *wire.TxOut) int64 {
+	return txOut.Value
+}
+
+// TODO: Please follow the relayer and the contract abi
+// const payload = ethers.utils.defaultAbiCoder.encode(
+//
+//	  ['address', 'uint256', 'uint64'],
+//	  [toAddress, amount, blockTime]
+//	);
+func GetPayloadHash(
+	sender [20]byte,
+	amount int64,
+	blockTime int64,
+) (evmTypes.Hash, error) {
+
+	encodedSender := types.Hash(common.BytesToHash(sender[:]))
+
+	amountBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(amountBytes, uint64(amount))
+	encodedAmount := types.Hash(common.BytesToHash(amountBytes))
+
+	blockTimeBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(blockTimeBytes, uint64(blockTime))
+	encodedBlockTime := types.Hash(common.BytesToHash(blockTimeBytes))
+
+	encodedPayload := append(encodedSender[:], encodedAmount[:]...)
+	encodedPayload = append(encodedPayload, encodedBlockTime[:]...)
+	payloadHash := evmTypes.Hash(common.BytesToHash(crypto.Keccak256(encodedPayload)))
+	return payloadHash, nil
 }

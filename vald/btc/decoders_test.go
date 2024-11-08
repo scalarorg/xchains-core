@@ -7,16 +7,14 @@ import (
 
 	"github.com/axelarnetwork/utils/log"
 	"github.com/btcsuite/btcd/wire"
-	"github.com/ethereum/go-ethereum/common"
 
 	coreUtils "github.com/axelarnetwork/axelar-core/utils"
 	"github.com/axelarnetwork/axelar-core/vald/btc"
-	"github.com/axelarnetwork/axelar-core/x/evm/types"
 )
 
 func TestDecodeEventContractCall(t *testing.T) {
 
-	txHex := "020000000001016f6651122da3f1fee9af65734274f5dbbc58d8b21d8e12a6510d0e12d40af1030200000000fdffffff03a086010000000000225120dade785d43c753bcc8c66f21fef05643ebb4d9812aa60782c7440189255bbb4b00000000000000003d6a013504531801040100080000000000aa36a714b91e3a8ef862567026d6f376c9f3d6b814ca43371424a1db57fa3ecafcbad91d6ef068439aceeae090c53d8f000000000016001450dceca158a9c872eb405d52293d351110572c9e02483045022100cd1c70983bf4991b8a9adc1ee5f3b6b67cdcd1c524241154cf7601dd01301347022022001f080250c4cc65b643438108d0724ed3cf20dd7f7ff6ad61fa0cb76f6a170121022ae31ea8709aeda8194ba3e2f7e7e95e680e8b65135c8983c0a298d17bc5350a00000000"
+	txHex := "02000000000101b32997c3254860bd022b6a6ec90005af7977cc7a67be6bba1fcc2378093a71210200000000fdffffff03a086010000000000225120dade785d43c753bcc8c66f21fef05643ebb4d9812aa60782c7440189255bbb4b00000000000000003d6a013504531801040100080000000000aa36a714b91e3a8ef862567026d6f376c9f3d6b814ca43371424a1db57fa3ecafcbad91d6ef068439aceeae09044ee8e000000000016001450dceca158a9c872eb405d52293d351110572c9e0247304402206bedb73e1bb7c8fb3d536a132051dc65edf641fe61bd7395a20d25d38cd1e59902207c49c52f0c704546868355e526fe99325fa03deda139f97ebc987931e61ab6d70121022ae31ea8709aeda8194ba3e2f7e7e95e680e8b65135c8983c0a298d17bc5350a00000000"
 
 	// Decode the hex string into bytes
 	txRaw, err := hex.DecodeString(txHex)
@@ -52,14 +50,19 @@ func TestDecodeEventContractCall(t *testing.T) {
 		t.Error("cannot parse chain id: ", err)
 	}
 
-	mintingAmount, err := btc.GetMintingAmount(msgTx.TxOut[0])
+	t.Logf("Chain ID: %d", chainId)
+
+	payloadHash, err := btc.GetPayloadHash(payload.DestinationRecipientAddr, msgTx.TxOut[0].Value, 1730982570)
 	if err != nil {
-		t.Error("cannot get minting amount: ", err)
+		t.Error("cannot get payload hash: ", err)
 	}
 
-	abi_minting_payload := types.Hash(common.BytesToHash(mintingAmount[:]))
+	t.Logf("Payload hash: %x", payloadHash)
+	payloadHex := hex.EncodeToString(payloadHash[:])
+	t.Logf("Payload hex: %s", payloadHex)
 
-	t.Logf("Minting amount: %x", abi_minting_payload)
+	if payloadHex != "2ec538c2c7579a8ed73b43d6424b19df7beecd8ae883a6776df439f4b1281bc3" {
+		t.Errorf("payload hash does not match")
+	}
 
-	t.Log("Chain ID: ", chainId)
 }
