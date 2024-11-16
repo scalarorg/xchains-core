@@ -11,6 +11,7 @@ PUSH_DOCKER_IMAGE := true
 # Default values that can be overridden by the caller via `make VAR=value [target]`
 # NOTE: Avoid adding comments on the same line as the variable assignment since trailing spaces will be included in the variable by make
 WASM := true
+WASMVM_VERSION := v2.1.3
 # 3 MB max wasm bytecode size
 MAX_WASM_SIZE := $(shell echo "$$((3 * 1024 * 1024))")
 IBC_WASM_HOOKS := false
@@ -26,7 +27,7 @@ VERSION := "v0.0.1"
 endif
 ifndef $(WASM_CAPABILITIES)
 # Wasm capabilities: https://github.com/CosmWasm/cosmwasm/blob/main/docs/CAPABILITIES-BUILT-IN.md
-WASM_CAPABILITIES := "iterator,staking,stargate,cosmwasm_1_3"
+WASM_CAPABILITIES := "iterator,staking,stargate,cosmwasm_2_1"
 else
 WASM_CAPABILITIES := ""
 endif
@@ -120,6 +121,7 @@ debug:  go.sum
 docker-image:
 	@DOCKER_BUILDKIT=1 docker build \
 		--build-arg WASM="${WASM}" \
+		--build-arg WASMVM_VERSION="${WASMVM_VERSION}" \
 		--build-arg IBC_WASM_HOOKS="${IBC_WASM_HOOKS}" \
 		--build-arg ARCH="${ARCH}" \
 		-t scalarorg/xchains-core .

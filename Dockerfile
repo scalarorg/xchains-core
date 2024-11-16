@@ -1,52 +1,44 @@
 # syntax=docker/dockerfile:experimental
 
-FROM golang:1.23.3-bullseye AS build
+FROM golang:1.23.3-alpine3.20 as build
 
 ARG ARCH=x86_64
 ARG WASM=true
 ARG IBC_WASM_HOOKS=false
-
-# Install required dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
+ARG WASMVM_VERSION=v1.3.1
+RUN apk add --no-cache --update \
   ca-certificates \
   git \
   make \
-  build-essential \
-  wget && \
-  rm -rf /var/lib/apt/lists/*
+  build-base \
+  linux-headers
 
-WORKDIR /axelar
+WORKDIR axelar
 
 COPY ./go.mod .
 COPY ./go.sum .
 RUN go mod download
 
 # Use a compatible libwasmvm
-# Note: Adjusted for Debian-based system
+# Alpine Linux requires static linking against muslc: https://github.com/CosmWasm/wasmd/blob/v0.33.0/INTEGRATION.md#prerequisites
 RUN if [[ "${WASM}" == "true" ]]; then \
-  WASMVM_VERSION=v1.3.1 && \
   wget https://github.com/CosmWasm/wasmvm/releases/download/${WASMVM_VERSION}/libwasmvm_muslc.${ARCH}.a \
-  -O /usr/local/lib/libwasmvm.a && \
+  -O /lib/libwasmvm_muslc.a && \
   wget https://github.com/CosmWasm/wasmvm/releases/download/${WASMVM_VERSION}/checksums.txt -O /tmp/checksums.txt && \
-  sha256sum /usr/local/lib/libwasmvm.a | grep $(cat /tmp/checksums.txt | grep libwasmvm_muslc.${ARCH}.a | cut -d ' ' -f 1); \
+  sha256sum /lib/libwasmvm_muslc.a | grep $(cat /tmp/checksums.txt | grep libwasmvm_muslc.${ARCH}.a | cut -d ' ' -f 1); \
   fi
 
 COPY . .
 
 RUN make MUSLC="${WASM}" WASM="${WASM}" IBC_WASM_HOOKS="${IBC_WASM_HOOKS}" build
 
-FROM debian:bullseye-slim
+FROM alpine:3.20
 
 ARG USER_ID=1000
 ARG GROUP_ID=1001
-RUN apt-get update && apt-get install -y --no-install-recommends \
-  jq \
-  bash && \
-  rm -rf /var/lib/apt/lists/*
-
-COPY --from=build /axelar/bin/* /usr/local/bin/
-RUN groupadd -g ${GROUP_ID} axelard && \
-    useradd -u ${USER_ID} -g axelard -m axelard
+RUN apk add jq bash
+COPY --from=build /go/axelar/bin/* /usr/local/bin/
+RUN addgroup -S -g ${GROUP_ID} axelard && adduser -S -u ${USER_ID} axelard -G axelard
 USER axelard
 COPY ./entrypoint.sh /entrypoint.sh
 
