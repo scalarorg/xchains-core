@@ -7,13 +7,13 @@ import (
 
 	"github.com/axelarnetwork/axelar-core/utils"
 	"github.com/axelarnetwork/axelar-core/vald/btc/rpc"
-	"github.com/axelarnetwork/axelar-core/x/evm/types"
 	evmTypes "github.com/axelarnetwork/axelar-core/x/evm/types"
 	nexus "github.com/axelarnetwork/axelar-core/x/nexus/exported"
 	"github.com/axelarnetwork/utils/log"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/scalarorg/bitcoin-vault/ffi/go-vault"
 	goutils "github.com/scalarorg/bitcoin-vault/go-utils"
 )
 
@@ -43,7 +43,7 @@ func DecodeEventContractCall(tx *rpc.BTCTransaction, evmConfigs map[int64]evmTyp
 		return evmTypes.EventContractCall{}, fmt.Errorf("transaction does not have expected payload op return output")
 	}
 
-	output, err := goutils.ParseVaultEmbeddedData(embeddedDataTxOut.PkScript)
+	output, err := vault.ParseVaultEmbeddedData(embeddedDataTxOut.PkScript)
 	if err != nil || output == nil {
 		return evmTypes.EventContractCall{}, fmt.Errorf("cannot parse payload op return data: %w", err)
 	}
@@ -82,14 +82,14 @@ func DecodeEventContractCall(tx *rpc.BTCTransaction, evmConfigs map[int64]evmTyp
 	})
 
 	log.Infof("Encoded BTC info to EVM Call: %v\n", evmTypes.EventContractCall{
-		Sender:           types.Address(output.DestinationRecipientAddress),
+		Sender:           evmTypes.Address(output.DestinationRecipientAddress),
 		DestinationChain: destinationChain, // not used
 		ContractAddress:  contractAddress,
 		PayloadHash:      evmTypes.Hash(common.BytesToHash(payloadHash)),
 	})
 
 	return evmTypes.EventContractCall{
-		Sender:           types.Address(output.DestinationRecipientAddress),
+		Sender:           evmTypes.Address(output.DestinationRecipientAddress),
 		DestinationChain: destinationChain,
 		ContractAddress:  contractAddress,
 		PayloadHash:      evmTypes.Hash(common.BytesToHash(payloadHash)),

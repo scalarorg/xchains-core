@@ -30,7 +30,8 @@ require (
 	github.com/rakyll/statik v0.1.7
 	github.com/regen-network/cosmos-proto v0.3.1
 	github.com/rs/zerolog v1.29.1
-	github.com/scalarorg/bitcoin-vault/go-utils v0.0.0-20241115093039-21030c97a1cf
+	github.com/scalarorg/bitcoin-vault/ffi/go-vault v0.0.0-20241118105335-8f66b4e0bec4
+	github.com/scalarorg/bitcoin-vault/go-utils v0.0.0-20241118180356-dbc77b48425b
 	github.com/spf13/cast v1.5.1
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/pflag v1.0.5
