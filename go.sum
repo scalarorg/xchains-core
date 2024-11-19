@@ -1616,10 +1616,10 @@ github.com/ryanuber/columnize v2.1.0+incompatible/go.mod h1:sm1tb6uqfes/u+d4ooFo
 github.com/samuel/go-zookeeper v0.0.0-20190923202752-2cc03de413da/go.mod h1:gi+0XIa01GRL2eRQVjQkKGqKF3SF9vZR/HnPullcV2E=
 github.com/sasha-s/go-deadlock v0.3.1 h1:sqv7fDNShgjcaxkO0JNcOAlr8B9+cV5Ey/OB71efZx0=
 github.com/sasha-s/go-deadlock v0.3.1/go.mod h1:F73l+cr82YSh10GxyRI6qZiCgK64VaZjwesgfQ1/iLM=
-github.com/scalarorg/bitcoin-vault/ffi/go-vault v0.0.0-20241118105335-8f66b4e0bec4 h1:fdfYuCeoVXITXFwzMaEdNbe8zFLP/ludmFBpFDD5Sog=
-github.com/scalarorg/bitcoin-vault/ffi/go-vault v0.0.0-20241118105335-8f66b4e0bec4/go.mod h1:Gi0l7q1oxP+d0JYCoJTqm4UZM52gA33jNqe7Ghmyzok=
-github.com/scalarorg/bitcoin-vault/go-utils v0.0.0-20241118180356-dbc77b48425b h1:gXKx7qWSTUZXQPCupCoZPKEmSJdXtJMvlXT8innoDBE=
-github.com/scalarorg/bitcoin-vault/go-utils v0.0.0-20241118180356-dbc77b48425b/go.mod h1:bziiL5A4RuXO1Y6QgIp1pFjO1XAg8XuOH01rA4hnn0s=
+github.com/scalarorg/bitcoin-vault/ffi/go-vault v0.0.0-20241119065544-05ccae022491 h1:fXgr7O0bXHPoYgKkPlFnIpHmG9VrOSHZ/BzIBt731Uw=
+github.com/scalarorg/bitcoin-vault/ffi/go-vault v0.0.0-20241119065544-05ccae022491/go.mod h1:Gi0l7q1oxP+d0JYCoJTqm4UZM52gA33jNqe7Ghmyzok=
+github.com/scalarorg/bitcoin-vault/go-utils v0.0.0-20241119085429-18c39ec6950a h1:5DztXAiCnQgVvrJEx2S6UUG/Wj+ilGI+AHW5En4RNB0=
+github.com/scalarorg/bitcoin-vault/go-utils v0.0.0-20241119085429-18c39ec6950a/go.mod h1:bziiL5A4RuXO1Y6QgIp1pFjO1XAg8XuOH01rA4hnn0s=
 github.com/schollz/closestmatch v2.1.0+incompatible/go.mod h1:RtP1ddjLong6gTkbtmuhtR2uUrrJOpYzYRvbcPAid+g=
 github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529/go.mod h1:DxrIzT+xaE7yg65j358z/aeFdxmN0P9QXhEzd20vsDc=
 github.com/segmentio/fasthash v1.0.3/go.mod h1:waKX8l2N8yckOgmSsXJi7x1ZfdKZ4x7KRMzBtS3oedY=

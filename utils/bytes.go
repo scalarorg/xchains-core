@@ -5,6 +5,9 @@ import (
 	"errors"
 )
 
+
+// TODO: Replace first byte with 00
+
 func BytesToInt64BigEndian(b []byte) (int64, error) {
 	if len(b) < 8 {
 		return 0, errors.New("byte slice must be at least 8 bytes long")

@@ -8,7 +8,7 @@ import (
 	"github.com/axelarnetwork/utils/log"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/scalarorg/bitcoin-vault/ffi/go-vault"
-	goutils "github.com/scalarorg/bitcoin-vault/go-utils"
+	evmUtils "github.com/scalarorg/bitcoin-vault/go-utils/evm"
 )
 
 // // go test -timeout 10m -run ^TestDecodeEventContractCall$ github.com/axelarnetwork/axelar-core/vald/btc -v -count=1
@@ -119,7 +119,7 @@ func TestDecodeEventContractCall(t *testing.T) {
 	t.Logf("Payload service tag: %x", output.ServiceTag)
 	t.Logf("Payload have only covenants: %v", output.HaveOnlyCovenants)
 	t.Logf("Payload covenant quorum: %x", output.CovenantQuorum)
-	t.Logf("Payload destination chain id: %x", output.DestinationChainID)
+	t.Logf("Payload destination chain id: %x", output.DestinationChain)
 	t.Logf("Payload destination contract addr: %x", output.DestinationContractAddress)
 	t.Logf("Payload destination recipient addr: %x", output.DestinationRecipientAddress)
 
@@ -138,7 +138,7 @@ func TestDecodeEventContractCall(t *testing.T) {
 
 	var mintingAmount int64 = msgTx.TxOut[0].Value
 
-	_, payloadHash, err := goutils.CalculateStakingPayloadHash(senderBytes, mintingAmount, txIdBytes)
+	_, payloadHash, err := evmUtils.CalculateStakingPayloadHash(senderBytes, mintingAmount, txIdBytes)
 	if err != nil {
 		t.Error("failed to get payload hash: ", err)
 	}

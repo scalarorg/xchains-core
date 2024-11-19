@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/axelarnetwork/axelar-core/utils"
 	"github.com/axelarnetwork/axelar-core/vald/btc/rpc"
 	evmTypes "github.com/axelarnetwork/axelar-core/x/evm/types"
 	nexus "github.com/axelarnetwork/axelar-core/x/nexus/exported"
@@ -13,8 +12,9 @@ import (
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/scalarorg/bitcoin-vault/ffi/go-vault"
-	goutils "github.com/scalarorg/bitcoin-vault/go-utils"
+	vault "github.com/scalarorg/bitcoin-vault/ffi/go-vault"
+	chainUtils "github.com/scalarorg/bitcoin-vault/go-utils/chain"
+	evmUtils "github.com/scalarorg/bitcoin-vault/go-utils/evm"
 )
 
 func DecodeEventContractCall(tx *rpc.BTCTransaction, evmConfigs map[int64]evmTypes.EVMConfig) (evmTypes.EventContractCall, error) {
@@ -48,11 +48,6 @@ func DecodeEventContractCall(tx *rpc.BTCTransaction, evmConfigs map[int64]evmTyp
 		return evmTypes.EventContractCall{}, fmt.Errorf("cannot parse payload op return data: %w", err)
 	}
 
-	chainId, err := utils.BytesToInt64BigEndian(output.DestinationChainID[:])
-	if err != nil {
-		return evmTypes.EventContractCall{}, fmt.Errorf("cannot parse chain id: %w", err)
-	}
-
 	var senderBytes [20]byte
 	copy(senderBytes[:], output.DestinationRecipientAddress[:])
 
@@ -66,12 +61,17 @@ func DecodeEventContractCall(tx *rpc.BTCTransaction, evmConfigs map[int64]evmTyp
 
 	var mintingAmount int64 = msgTx.TxOut[0].Value
 
-	_, payloadHash, err := goutils.CalculateStakingPayloadHash(senderBytes, mintingAmount, txIdBytes)
+	_, payloadHash, err := evmUtils.CalculateStakingPayloadHash(senderBytes, mintingAmount, txIdBytes)
 	if err != nil {
 		return evmTypes.EventContractCall{}, fmt.Errorf("failed to get payload hash: %w", err)
 	}
 
-	destinationChain := nexus.ChainName(evmConfigs[chainId].Name)
+	parsedDestinationChain := chainUtils.NewDestinationChainFromBytes(output.DestinationChain)
+	if parsedDestinationChain == nil {
+		return evmTypes.EventContractCall{}, fmt.Errorf("failed to parse destination chain")
+	}
+
+	destinationChain := nexus.ChainName(evmConfigs[int64(parsedDestinationChain.ChainID)].Name)
 	contractAddress := hex.EncodeToString(output.DestinationContractAddress[:])
 
 	log.Debugf("Encoded Data: %v\n", map[string]interface{}{
