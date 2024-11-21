@@ -1,17 +1,30 @@
 # syntax=docker/dockerfile:experimental
 
-FROM golang:1.21-alpine3.18 as build
+FROM rust:1.82-alpine3.20 as libbuilder
+RUN apk add --no-cache git libc-dev
+# Build bitcoin-vault lib
+# Todo: select a specific feature, eg ffi
+RUN git clone https://github.com/scalarorg/bitcoin-vault.git
+WORKDIR /bitcoin-vault
+RUN cargo build --release
+
+# Build axelar-core
+
+FROM golang:1.23.3-alpine3.20 as build
 
 ARG ARCH=x86_64
 ARG WASM=true
 ARG IBC_WASM_HOOKS=false
-
+ARG WASMVM_VERSION=v1.3.1
 RUN apk add --no-cache --update \
   ca-certificates \
   git \
   make \
   build-base \
   linux-headers
+
+# Copy the bitcoin-vault lib
+COPY --from=libbuilder /bitcoin-vault/target/release/libbitcoin_vault_ffi.* /usr/lib/
 
 WORKDIR axelar
 
@@ -22,7 +35,6 @@ RUN go mod download
 # Use a compatible libwasmvm
 # Alpine Linux requires static linking against muslc: https://github.com/CosmWasm/wasmd/blob/v0.33.0/INTEGRATION.md#prerequisites
 RUN if [[ "${WASM}" == "true" ]]; then \
-  WASMVM_VERSION=v1.3.1 && \
   wget https://github.com/CosmWasm/wasmvm/releases/download/${WASMVM_VERSION}/libwasmvm_muslc.${ARCH}.a \
   -O /lib/libwasmvm_muslc.a && \
   wget https://github.com/CosmWasm/wasmvm/releases/download/${WASMVM_VERSION}/checksums.txt -O /tmp/checksums.txt && \
@@ -33,7 +45,7 @@ COPY . .
 
 RUN make MUSLC="${WASM}" WASM="${WASM}" IBC_WASM_HOOKS="${IBC_WASM_HOOKS}" build
 
-FROM alpine:3.18
+FROM alpine:3.20
 
 ARG USER_ID=1000
 ARG GROUP_ID=1001
