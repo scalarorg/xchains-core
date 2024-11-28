@@ -1,89 +1,150 @@
-# axelar-core
+# Scalar Core
 
-The axelar-core app based on the Cosmos SDK is the main application of the axelar network. This repository is used to
-build the necessary binaries and docker image to run a core node.
+Scalar Core is a blockchain interoperability network that enables seamless asset transfers between Bitcoin and other chains. Built on top of the Cosmos SDK, Scalar introduces specialized modules for managing cross-chain assets and protocols.
 
-## How To Build
+1. First version of the code is based on the axelar codebase
+2. Second version of the code is brand new and based on the cosmos sdk and reuses some axelar packages
 
-_Note:_ For a release build, checkout the release tag via `git checkout vX.Y.Z` first.
+## Overview
 
-Execute `make build` to create the `axelard` binary in the `./bin` folder.
+Scalar serves as a decentralized bridge between Bitcoin and various EVM chains and non-EVM chains in the future, providing secure and efficient cross-chain communication. The network utilizes a validator set to manage assets and sign transactions across different chains.
 
-## Creating docker images
+## Key Features
 
-To create a regular docker image for the node, execute `make docker-image`. This creates the image axelar/core:
-latest.
+- Bitcoin to EVM bridge functionality
+- Multi-chain support for EVM-compatible networks
+- Secure multi-signature schemes (Schnorr for BTC, ECDSA for EVM)
+- Protocol-level asset management
+- Covenant-based custody system
 
-To create a docker image for debugging (with [delve](https://github.com/go-delve/delve)),
-execute `make docker-image-debug`. This creates the image axelar/core-debug:latest.
+## Core Modules
 
-### Smart contracts bytecode dependency
+### 🌟 Covenant Module
 
-In order to run/build the project locally we need to import the bytecode from gateway smart contracts.
+Manages the secure custody of user assets across Bitcoin and EVM chains:
 
-1. Find the required version of the bytecode here [`contract-version.json`](contract-version.json)
-2. Download that version from the [axelar-cgp-solidity releases](https://github.com/axelarnetwork/axelar-cgp-solidity/releases).
-   Example: `Bytecode-v4.3.0`
-3. Unzip the json files under `contract-artifacts/`
-4. Run `make generate` to generate `x/evm/types/contracts.go`
+- Custodian management system
+- Transaction signing for BTC unstaking
+- EVM transaction signing for staking operations
+- Asset security and management
 
-## Download and Verify Binary
+### 🌟 Protocol Module
 
-Before interacting with the axelar network, ensure you have the correct `axelard` binary and that it's verified:
+Acts as the service layer for managing staking operations:
 
-1. **Download the Binary and Signature File:**
-   - Go to the [Axelar Core releases page](https://github.com/axelarnetwork/axelar-core/releases).
-   - Download the `axelard` binary for your operating system and architecture.
-   - Also, download the corresponding `.asc` signature file.
+- ERC20 token management for BTC staking
+- Protocol information storage on Scalar network
+- Cross-chain communication coordination
 
-2. **Import Axelar's Public Key:**
-   - Run the following command to import the public key:
-     ```bash
-     curl https://keybase.io/axelardev/pgp_keys.asc | gpg --import
-     ```
+### 🌟 EVM ERC20 Tokens Module
 
-3. **Trust the Imported Key:**
-   - Enter GPG interactive mode:
-     ```bash
-     gpg --edit-key 5D9FFADEED11FA5D
-     ```
-   - Type `trust` then select option `5` to trust ultimately.
+Handles the deployment and management of ERC20 tokens across EVM chains:
 
-4. **Verify the Binary:**
-   - For example, for version v0.34.3, use:
-     ```bash
-     gpg --verify axelard-darwin-amd64-v0.34.3.asc axelard-darwin-amd64-v0.34.3
-     ```
-   - A message indicating a good signature should appear, like:
-     ```
-     Good signature from "Axelar Network Devs <eng@axelar.network>" [ultimate]
-     ```
+- Multiple token deployment capability per chain
+- Configuration for:
+  - Bitcoin source network (testnet4, mainnet, regtest)
+  - Protocol identity (protocol pubkey)
+  - Covenant management settings
 
-## Interacting with a local node
+### 🌟 Bitcoin Module
 
-With a local (dockerized) node running, the `axelard` binary can be used to interact with the node.
-Run `./bin/axelard` or `./bin/axelard <command> --help` after building the binaries to get information about the available commands.
+Provides Bitcoin network integration:
 
-## Show API documentation
+- Transaction verification
+- Transaction validation
+- Confirmation management
+- Bitcoin network state tracking
 
-Execute `GO111MODULE=off go install -u golang.org/x/tools/cmd/godoc` to ensure that `godoc` is installed on the host.
+### 🌟 Multisig Module
 
-After the installation, execute `godoc -http ":{port}" -index` to host a local godoc server. For example, with
-port `8080` and `godoc -http ":8080" -index`, the documentation is hosted at
-http://localhost:8080/pkg/github.com/axelarnetwork/axelar-core. The index flag makes the documentation searchable.
+Implements secure multi-signature schemes:
 
-Comments at the beginning of packages, before types and before functions are automatically taken from the source files
-to populate the documentation. See https://blog.golang.org/godoc for more information.
+- EVM: ECDSA multisig with weighted signatures
+- BTC: Schnorr multisig with Taproot support
+- Validator coordination for transaction signing
 
-### CLI command documentation
+## Prerequisites
 
-For the full list of available CLI commands for `axelard` see [here](docs/cli/toc.md)
+- Go 1.23+
+- Rust 1.82+
+- Docker
 
-## Test tools
+## Building
 
-Dev tool dependencies, such as `moq` and `goimports`, can be installed via `make prereqs`.
-Make sure they're on available on your `PATH`.
+```bash
+make build
+```
 
-## Bug bounty and disclosure of vulnerabilities
+## Running
 
-See the [Axelar documentation website](https://docs.axelar.dev/bug-bounty).
+```bash
+make start
+```
+
+## Docker
+
+### Building Docker Images
+
+```bash
+make docker-image
+```
+
+#### Running Docker Container
+
+```bash
+make docker-run
+```
+
+## Development Setup
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/scalarorg/xchains-core.git
+cd xchains-core
+```
+
+2. Install dependencies:
+
+```bash
+make prereqs
+```
+
+3. Generate protocol buffers:
+
+```bash
+make proto-gen
+```
+
+4. Build Docker Image:
+
+```bash
+make docker-image
+```
+
+5. Run Docker Container:
+
+```bash
+make docker-run
+```
+
+## Configuration
+
+The network can be configured through environment variables or a config file. Key configuration options:
+
+- `NODE_MONIKER`: The Scalar node's moniker
+- `PEERS_FILE`: File with peer list for network connection
+- `CONFIG_PATH`: Path to configuration file
+- `PRESTART_SCRIPT`: Pre-launch script path
+
+## Contributing
+
+Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTING.md) before submitting pull requests.
+
+## License
+
+[License details to be added]
+
+## Security
+
+For security concerns, please email [security contact to be added].
